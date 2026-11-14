@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<title>الكتاب المقدس - قراءة واستماع</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700&display=swap">
+<style>
+  :root {
+    --bg: #f6f0e4; --card: #fffdf8; --text: #2b231d; --muted: #7d6c5c; --accent: #7b4f2c; --accent-2: #b07a3f;
+    --hl: #fbf0d6; --cursor: #f3c44f; --cursor-text: #24180a; --done: #a08f7f; --border: #e6dac7;
+    --play: #2f7d4a; --stop: #b23a32; --ghost: #efe5d4; --shadow: 0 8px 28px rgba(80, 50, 20, .09);
+    --ui-font: 'Cairo', 'Segoe UI', Tahoma, sans-serif; --text-font: 'Amiri', 'Traditional Arabic', 'Segoe UI', serif;
+  }
+  body.dark {
+    --bg: #151311; --card: #201d1a; --text: #ede5d9; --muted: #a59684; --accent: #e3ba7c; --accent-2: #c9995a;
+    --hl: #352b1c; --cursor: #e5a937; --cursor-text: #1a1206; --done: #85786a; --border: #39332d;
+    --play: #3c9a5d; --stop: #c9493f; --ghost: #2c2824; --shadow: 0 8px 28px rgba(0, 0, 0, .35);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: 160px; }
+  body { font-family: var(--ui-font); background: var(--bg); color: var(--text); margin: 0; padding: 14px; transition: background .3s, color .3s; }
+  .app { max-width: 960px; margin: auto; }
+  .toolbar { position: sticky; top: 6px; z-index: 50; max-height: 82vh; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; box-shadow: var(--shadow); display: grid; gap: 10px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); min-width: 120px; }
+  .field.grow { flex: 1 1 200px; }
+  .field.speed { flex: 1 1 220px; }
+  .field b { color: var(--accent); }
+  select, input[type=text], button { font-family: inherit; font-size: 15px; border-radius: 9px; border: 1px solid var(--border); background: var(--bg); color: var(--text); padding: 8px 12px; }
+  select { cursor: pointer; width: 100%; }
+  select:focus, input:focus, button:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; height: 34px; }
+  button { cursor: pointer; font-weight: 700; transition: transform .1s, filter .2s; white-space: nowrap; }
+  button:active { transform: scale(.97); }
+  button:hover { filter: brightness(1.06); }
+  .btn-play { background: var(--play); color: #fff; border-color: transparent; min-width: 150px; }
+  .btn-stop { background: var(--stop); color: #fff; border-color: transparent; }
+  .btn-ghost { background: var(--ghost); }
+  .range-wrap { display: flex; align-items: center; gap: 8px; }
+  .range-wrap small { font-size: 12px; color: var(--muted); }
+  .check { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; user-select: none; }
+  .spacer { flex: 1; }
+  .status { font-size: 13px; color: var(--muted); min-height: 18px; }
+  .status.warn { color: var(--stop); font-weight: 600; }
+  .progress { height: 4px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .progress > div { height: 100%; width: 0; background: var(--accent-2); transition: width .4s ease; }
+  .alert { background: var(--hl); border: 1px solid var(--accent-2); color: var(--text); padding: 12px 14px; border-radius: 12px; margin: 12px 0 0; font-size: 14px; line-height: 1.9; }
+  .alert ol { margin: 4px 0; padding-inline-start: 20px; }
+  .alert button { margin-top: 6px; }
+  .page { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px 24px; margin-top: 14px; box-shadow: var(--shadow); }
+  .page-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+  h1 { color: var(--accent); font-family: var(--text-font); font-size: 30px; margin: 4px 0; }
+  #search-box { flex: 0 1 260px; }
+  #verses { font-family: var(--text-font); font-size: 24px; line-height: 2.1; margin-top: 10px; }
+  .verse { margin: 4px 0; padding: 6px 12px; border-radius: 10px; cursor: pointer; border-inline-start: 4px solid transparent; transition: background .25s, border-color .25s; }
+  .verse:hover { background: rgba(176, 122, 63, .08); }
+  .verse.active { background: var(--hl); border-inline-start-color: var(--accent-2); }
+  .v-num { color: var(--accent); font-size: .7em; font-weight: 700; margin-inline-end: 6px; font-family: var(--ui-font); }
+  .w { border-radius: 5px; transition: background-color .2s ease, color .2s ease, box-shadow .2s ease; }
+  .verse.active .w.done { color: var(--done); }
+  .w.now { background: var(--cursor); color: var(--cursor-text); box-shadow: 0 0 0 3px var(--cursor); }
+  .footer { display: flex; justify-content: space-between; gap: 10px; margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .empty { text-align: center; color: var(--muted); padding: 20px; font-family: var(--ui-font); font-size: 16px; }
+  .hint { font-size: 12px; color: var(--muted); text-align: center; margin-top: 10px; }
+  [hidden] { display: none !important; }
+  .bar { align-items: center; gap: 8px; }
+  .bar .field.chap { flex-direction: row; align-items: center; min-width: 0; gap: 6px; }
+  .bar .field.chap select { width: auto; min-width: 70px; }
+  .panel { padding-top: 8px; border-top: 1px dashed var(--border); }
+  .field.vol { flex: 1 1 220px; }
+  .credit { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border); text-align: center; font-size: 11px; line-height: 1.7; color: var(--muted); }
+  .credit b { color: var(--accent); font-weight: 600; }
+  .recent { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; margin-top: 12px; box-shadow: var(--shadow); }
+  .recent-title { font-size: 13px; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+  .recent-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .recent-item { flex: 1 1 200px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: start; background: var(--ghost); }
+  .recent-files { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .recent-files button { padding: 6px 10px; font-size: 13px; }
+  .store-warn { margin-top: 8px; font-size: 12px; line-height: 1.6; color: #b45309; }
+  .recent-item small { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .recent-item.current { border-color: var(--accent-2); background: var(--hl); }
+  #settings-toggle.on { background: var(--accent-2); color: #fff; }
+  @media (max-width: 640px) {
+    body { padding: 8px; }
+    .toolbar { position: sticky; top: 4px; padding: 8px; gap: 6px; }
+    .bar { gap: 5px; }
+    .bar button { padding: 6px 9px; font-size: 14px; }
+    .bar .field.chap span { display: none; }
+    .btn-play { min-width: 0; }
+    .field { min-width: 100px; }
+    #verses { font-size: 21px; }
+    .page { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="toolbar">
+    <div class="row bar">
+      <button id="play-btn" class="btn-play">▶ ابدأ القراءة</button>
+      <button id="stop-btn" class="btn-stop" title="إيقاف">⏹</button>
+      <label class="field chap"><span>الأصحاح</span><select id="chap-sel"></select></label>
+      <button id="prev-top" class="btn-ghost" title="الأصحاح السابق">→</button>
+      <button id="next-top" class="btn-ghost" title="الأصحاح التالي">←</button>
+      <span class="spacer"></span>
+      <button id="font-dec" class="btn-ghost" title="تصغير الخط">أ−</button>
+      <button id="font-inc" class="btn-ghost" title="تكبير الخط">أ+</button>
+      <button id="theme-btn" class="btn-ghost" title="الوضع الليلي">🌓</button>
+      <button id="settings-toggle" class="btn-ghost" title="الإعدادات">⚙️</button>
+    </div>
+    <div id="settings-panel" class="panel">
+      <div class="row">
+        <label class="field grow"><span>السفر</span><select id="book-sel"></select></label>
+        <label class="field"><span>طريقة القراءة</span>
+          <select id="mode-sel">
+            <option value="device">🔊 صوت الجهاز (Windows)</option>
+            <option value="online">🌐 صوت من الإنترنت</option>
+            <option value="silent">👁 بدون صوت (مؤشر فقط)</option>
+          </select>
+        </label>
+        <label class="field grow" id="voice-field"><span>القارئ</span><select id="voice-sel"></select></label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label class="field speed"><span>السرعة: <b id="rate-label">1.0×</b></span>
+          <span class="range-wrap"><small>أبطأ</small><input type="range" id="rate" min="0.5" max="2.5" step="0.1" value="1"><small>أسرع</small></span>
+        </label>
+        <label class="field vol"><span>مستوى الصوت: <b id="vol-label">100%</b></span>
+          <span class="range-wrap"><small>🔈</small><input type="range" id="volume" min="0" max="1" step="0.05" value="1"><small>🔊</small></span>
+        </label>
+        <label class="check"><input type="checkbox" id="auto-next" checked> انتقل تلقائياً للأصحاح التالي</label>
+      </div>
+      <div class="credit">
+        <div>طُوِّر بواسطة المهندس <b>بديع موسى راجي</b> — 2026</div>
+        <div dir="ltr">Developed by Eng. <b>Badie Mousa Ragy</b> — 2026</div>
+      </div>
+    </div>
+    <div class="progress"><div id="progress-bar"></div></div>
+    <div id="status" class="status"></div>
+  </header>
+
+  <div id="voice-alert" class="alert" hidden>
+    ⚠️ <b>لا يوجد صوت عربي في هذا المتصفح.</b> اختر أحد الحلول:
+    <ol>
+      <li>افتح الملف بمتصفح <b>Microsoft Edge</b> — فيه أصوات عربية طبيعية (مثل Salma و Hamed) تعمل مع الإنترنت.</li>
+      <li>أو ثبّت الصوت العربي في Windows 10: <b>الإعدادات ← الوقت واللغة ← اللغة ← إضافة لغة ← العربية</b> مع تفعيل «تحويل النص إلى كلام»، ثم أعد فتح المتصفح.</li>
+      <li>أو استخدم الصوت من الإنترنت مباشرة:</li>
+    </ol>
+    <button id="use-online-btn" class="btn-play">🌐 استخدم صوت الإنترنت</button>
+  </div>
+
+  <div id="recent" class="recent" hidden>
+    <div class="recent-title">📌 آخر الأماكن التي كنت تقرأ فيها — اضغط لتكمل من نفس الموضع</div>
+    <div id="recent-list" class="recent-list"></div>
+    <div class="recent-files">
+      <button id="recent-save" class="btn-ghost" title="حفظ الأماكن الأربعة في ملف">💾 حفظ الأماكن في ملف</button>
+      <button id="recent-load" class="btn-ghost" title="تحميل الأماكن من ملف محفوظ">📂 تحميل الأماكن من ملف</button>
+      <input type="file" id="recent-file" accept=".json,.txt,application/json,text/plain" hidden>
+    </div>
+    <div id="store-warn" class="store-warn" hidden>⚠️ طريقة فتح الملف الحالية على هذا الجهاز لا تسمح للمتصفح بحفظ الأماكن بعد إغلاق الصفحة (الأماكن الأربعة تعمل فقط ما دامت الصفحة مفتوحة).</div>
+  </div>
+
+  <section class="page">
+    <div class="page-head">
+      <h1 id="chap-title"></h1>
+      <input type="text" id="search-box" placeholder="🔍 ابحث في الأصحاح...">
+    </div>
+    <div id="verses"></div>
+    <div class="footer">
+      <button id="prev-btn" class="btn-ghost">→ الأصحاح السابق</button>
+      <button id="next-btn" class="btn-ghost">الأصحاح التالي ←</button>
+    </div>
+    <div class="hint">اضغط على أي كلمة لتبدأ القراءة منها • مسطرة المسافة: تشغيل/إيقاف مؤقت • Esc: إيقاف</div>
+  </section>
+</div>
+
+<script>
+  const BIBLE_INDEX = {"التكوين":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50"],"p":[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]},"الخروج":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40"],"p":[2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,4,4]},"اللاويين":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27"],"p":[4,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5]},"العدد":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36"],"p":[5,5,5,5,5,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,7,7,7,7,7,7,7,7]},"التثنية":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34"],"p":[7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8,8]},"يشوع":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24"],"p":[8,8,8,8,8,8,8,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9]},"القضاة":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21"],"p":[9,9,9,9,9,9,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10]},"راعوث":{"c":["1","2","3","4"],"p":[10,10,10,10]},"صموئيل الأول":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31"],"p":[10,10,10,10,10,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,11,12,12,12]},"صموئيل الثاني":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24"],"p":[12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,12,13,13,13]},"الملوك الأول":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22"],"p":[13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,14,14,14,14,14,14,14]},"الملوك الثاني":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25"],"p":[14,14,14,14,14,14,14,14,14,14,14,14,14,15,15,15,15,15,15,15,15,15,15,15,15]},"أخبار الأيام الأول":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29"],"p":[15,15,15,15,15,15,15,15,15,15,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16,16]},"أخبار الأيام الثاني":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36"],"p":[16,16,16,16,16,16,16,16,16,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17]},"عزرا":{"c":["1","2","3","4","5","6","7","8","9","10"],"p":[18,18,18,18,18,18,18,18,18,18]},"نحميا":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13"],"p":[18,18,18,18,18,18,18,18,18,18,18,18,18]},"أستير":{"c":["1","2","3","4","5","6","7","8","9","10"],"p":[18,19,19,19,19,19,19,19,19,19]},"أيوب":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42"],"p":[19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,20,20,20,20,20,20]},"المزامير":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66","67","68","69","70","71","72","73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88","89","90","91","92","93","94","95","96","97","98","99","100","101","102","103","104","105","106","107","108","109","110","111","112","113","114","115","116","117","118","119","120","121","122","123","124","125","126","127","128","129","130","131","132","133","134","135","136","137","138","139","140","141","142","143","144","145","146","147","148","149","150"],"p":[20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22]},"الأمثال":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31"],"p":[22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22,22]},"الجامعة":{"c":["1","2","3","4","5","6","7","8","9","10","11","12"],"p":[22,23,23,23,23,23,23,23,23,23,23,23]},"نشيد الأنشاد":{"c":["1","2","3","4","5","6","7","8"],"p":[23,23,23,23,23,23,23,23]},"إشعياء":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52","53","54","55","56","57","58","59","60","61","62","63","64","65","66"],"p":[23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,25,25,25,25,25,25]},"إرميا":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51","52"],"p":[25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,25,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,26,27,27,27,27]},"مراثي إرميا":{"c":["1","2","3","4","5"],"p":[27,27,27,27,27]},"حزقيال":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48"],"p":[27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,27,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,29,29,29,29,29,29,29,29]},"دانيال":{"c":["1","2","3","4","5","6","7","8","9","10","11","12"],"p":[29,29,29,29,29,29,29,29,29,29,29,29]},"هوشع":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14"],"p":[29,29,29,29,30,30,30,30,30,30,30,30,30,30]},"يوئيل":{"c":["1","2","3"],"p":[30,30,30]},"عاموس":{"c":["1","2","3","4","5","6","7","8","9"],"p":[30,30,30,30,30,30,30,30,30]},"عوبديا":{"c":["1"],"p":[30]},"يونان":{"c":["1","2","3","4"],"p":[30,30,30,30]},"ميخا":{"c":["1","2","3","4","5","6","7"],"p":[30,30,30,30,30,30,30]},"ناحوم":{"c":["1","2","3"],"p":[30,30,30]},"حبقوق":{"c":["1","2","3"],"p":[30,30,30]},"صفنيا":{"c":["1","2","3"],"p":[30,30,30]},"حجي":{"c":["1","2"],"p":[30,30]},"زكريا":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14"],"p":[31,31,31,31,31,31,31,31,31,31,31,31,31,31]},"ملاخي":{"c":["1","2","3","4"],"p":[31,31,31,31]},"متى":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28"],"p":[31,31,31,31,31,31,31,31,31,31,31,31,31,31,32,32,32,32,32,32,32,32,32,32,32,32,32,32]},"مرقس":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"],"p":[32,32,32,32,32,32,32,33,33,33,33,33,33,33,33,33]},"لوقا":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24"],"p":[33,33,33,33,33,33,33,33,34,34,34,34,34,34,34,34,34,34,34,34,34,34,34,34]},"يوحنا":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21"],"p":[34,34,34,35,35,35,35,35,35,35,35,35,35,35,35,35,35,35,35,35,35]},"أعمال الرسل":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28"],"p":[35,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,36,37,37,37,37,37,37,37,37]},"رومية":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"],"p":[37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37]},"كورنثوس الأولى":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"],"p":[37,37,37,38,38,38,38,38,38,38,38,38,38,38,38,38]},"كورنثوس الثانية":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13"],"p":[38,38,38,38,38,38,38,38,38,38,38,38,38]},"غلاطية":{"c":["1","2","3","4","5","6"],"p":[38,38,38,38,38,38]},"أفسس":{"c":["1","2","3","4","5","6"],"p":[38,39,39,39,39,39]},"فيلبي":{"c":["1","2","3","4"],"p":[39,39,39,39]},"كولوسي":{"c":["1","2","3","4"],"p":[39,39,39,39]},"تسالونيكي الأولى":{"c":["1","2","3","4","5"],"p":[39,39,39,39,39]},"تسالونيكي الثانية":{"c":["1","2","3"],"p":[39,39,39]},"تيموثاوس الأولى":{"c":["1","2","3","4","5","6"],"p":[39,39,39,39,39,39]},"تيموثاوس الثانية":{"c":["1","2","3","4"],"p":[39,39,39,39]},"تيطس":{"c":["1","2","3"],"p":[39,39,39]},"فيليمون":{"c":["1"],"p":[39]},"العبرانيين":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13"],"p":[39,39,39,39,39,39,40,40,40,40,40,40,40]},"يعقوب":{"c":["1","2","3","4","5"],"p":[40,40,40,40,40]},"بطرس الأولى":{"c":["1","2","3","4","5"],"p":[40,40,40,40,40]},"بطرس الثانية":{"c":["1","2","3"],"p":[40,40,40]},"يوحنا الأولى":{"c":["1","2","3","4","5"],"p":[40,40,40,40,40]},"يوحنا الثانية":{"c":["1"],"p":[40]},"يوحنا الثالثة":{"c":["1"],"p":[40]},"يهوذا":{"c":["1"],"p":[40]},"رؤيا يوحنا":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22"],"p":[40,40,40,40,40,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41,41]},"سفر طوبيا":{"c":["2","3","4","5","6","7","8","9","10","11","12","13","14"],"p":[41,41,41,41,41,41,41,41,41,41,41,41,41]},"سفر يهوديت":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"],"p":[41,41,41,41,41,41,42,42,42,42,42,42,42,42,42,42]},"تتمة سفر أستير":{"c":["10","11","12","13","14","15","16"],"p":[42,42,42,42,42,42,42]},"سفر الحكمة":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19"],"p":[42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,42,43,43]},"سفر يشوع بن سيراخ":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20","21","22","23","24","25","26","27","28","29","30","31","32","33","34","35","36","37","38","39","40","41","42","43","44","45","46","47","48","49","50","51"],"p":[43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,43,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44,44]},"سفر باروخ":{"c":["1","2","3","4","5","6"],"p":[44,44,44,44,44,44]},"سفر المكابيين الأول":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"],"p":[44,44,45,45,45,45,45,45,45,45,45,45,45,45,46,46]},"سفر المكابيين الثاني":{"c":["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15"],"p":[46,46,46,46,46,46,46,46,46,46,46,46,46,46,47]},"تتمة سفر دانيال":{"c":["3","13","14"],"p":[47,47,47]},"المزمور المائة والحادي والخمسون":{"c":["1"],"p":[47]}};
+</script>
+<script>
+(function () {
+  "use strict";
+
+  // ---------- البيانات (محمّلة على أجزاء صغيرة عند الحاجة) ----------
+  const DATA_VER = "2";
+  const bibleIndex = BIBLE_INDEX;      // السفر -> {c: الأصحاحات, p: رقم ملف كل أصحاح}
+  const bibleData = {};                // يتملي تلقائياً لما يتحمّل كل ملف
+  const partState = {}, partWaiters = {};
+  window.__bibleLoad = function (n, data) {
+    Object.keys(data).forEach(function (bk) { bibleData[bk] = Object.assign(bibleData[bk] || {}, data[bk]); });
+    partState[n] = "done";
+    (partWaiters[n] || []).splice(0).forEach(function (f) { f(true); });
+  };
+  function loadPart(n, cb) {
+    if (partState[n] === "done") { cb(true); return; }
+    (partWaiters[n] = partWaiters[n] || []).push(cb);
+    if (partState[n] === "loading") return;
+    partState[n] = "loading";
+    const sc = document.createElement("script");
+    sc.src = "bible-" + n + ".js?v=" + DATA_VER;
+    sc.onerror = function () {
+      partState[n] = null; sc.remove();
+      (partWaiters[n] || []).splice(0).forEach(function (f) { f(false); });
+    };
+    document.head.appendChild(sc);
+  }
+  function hasChapter(bk, c) { return !!(bibleData[bk] && bibleData[bk][c]); }
+  function partOf(bk, c) { const e = bibleIndex[bk]; return e ? e.p[e.c.indexOf(c)] : undefined; }
+  function ensureChapter(bk, c, cb) {
+    if (hasChapter(bk, c)) { cb(true); return; }
+    const n = partOf(bk, c);
+    if (!n) { cb(false); return; }
+    loadPart(n, cb);
+  }
+  function chapterExists(bk, c) { const e = bibleIndex[bk]; return !!e && e.c.indexOf(c) !== -1; }
+  function prefetchNext(bk, c) {   // يحمّل الأجزاء اللي جاية في الخلفية علشان الانتقال يبقى سلس
+    const bs = Object.keys(bibleIndex);
+    let bi = bs.indexOf(bk), ci = bibleIndex[bk].c.indexOf(c);
+    for (let k = 0; k < 4; k++) {
+      ci++;
+      if (ci >= bibleIndex[bs[bi]].c.length) { bi++; ci = 0; if (bi >= bs.length) return; }
+      const n = bibleIndex[bs[bi]].p[ci];
+      if (n && partState[n] !== "done" && partState[n] !== "loading") {
+        setTimeout(function () { loadPart(n, function () {}); }, 1200 + k * 600);
+      }
+    }
+  }
+
+  const $ = function (id) { return document.getElementById(id); };
+  // تخزين: localStorage لو شغال، وإلا ذاكرة مؤقتة (بتفضل شغالة طول ما الصفحة مفتوحة)
+  const mem = {};
+  let persistent = false;
+  try { localStorage.setItem("bible.__t", "1"); persistent = localStorage.getItem("bible.__t") === "1"; localStorage.removeItem("bible.__t"); } catch (e) { persistent = false; }
+  const store = {
+    get: function (k, d) {
+      if (persistent) { try { const v = localStorage.getItem("bible." + k); return v === null ? d : JSON.parse(v); } catch (e) {} }
+      return Object.prototype.hasOwnProperty.call(mem, k) ? JSON.parse(mem[k]) : d;
+    },
+    set: function (k, v) {
+      mem[k] = JSON.stringify(v);
+      if (persistent) { try { localStorage.setItem("bible." + k, mem[k]); } catch (e) {} }
+    },
+    persistent: persistent
+  };
+  const synth = ("speechSynthesis" in window) ? window.speechSynthesis : null;
+  const BASE_WPM = 110;          // سرعة المؤشر الصامت عند 1.0×
+  const MAX_CHUNK = 180;         // أقصى طول للجملة المرسلة للصوت
+  const TASHKEEL = /[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g;
+
+  function cleanForSpeech(w) { return w.replace(TASHKEEL, "").replace(/\u0671/g, "ا"); }
+  function normalizeSearch(s) { return cleanForSpeech(s).replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه"); }
+
+  const bookSel = $("book-sel"), chapSel = $("chap-sel"), modeSel = $("mode-sel"), voiceSel = $("voice-sel");
+  const rateInput = $("rate"), versesDiv = $("verses"), playBtn = $("play-btn"), statusEl = $("status");
+
+  const state = {
+    mode: store.get("mode", "device"),
+    rate: store.get("rate", 1),
+    volume: store.get("volume", 1),
+    font: store.get("font", 24),
+    voices: [],
+    verses: [],          // [{el, words, spans, clean, chunks}]
+    playing: false,
+    token: 0,
+    cancel: null,
+    cur: { v: -1, k: -1 },
+    resume: null,        // {v, k}
+    secPerChar: 0.075,   // تقدير زمني يتعلّم من صوت الجهاز
+    utt: null,
+    audioCache: new Map(),
+    warnedOnline: false
+  };
+
+  // ---------- الحالة والرسائل ----------
+  let statusTimer = null;
+  function showStatus(msg, warn) {
+    statusEl.textContent = msg || "";
+    statusEl.className = "status" + (warn ? " warn" : "");
+    clearTimeout(statusTimer);
+    if (warn) statusTimer = setTimeout(function () { updateStatus(); }, 7000);
+  }
+  function updateStatus() {
+    if (state.playing && state.cur.v >= 0) {
+      const label = state.mode === "silent" ? "المؤشر على" : "يقرأ الآن";
+      showStatus(label + " الآية " + (state.cur.v + 1) + " من " + state.verses.length);
+    } else if (state.resume) {
+      showStatus("متوقف مؤقتاً عند الآية " + (state.resume.v + 1) + " — اضغط «متابعة» للاستكمال");
+    } else {
+      showStatus("");
+    }
+  }
+  function updateButtons() {
+    if (state.playing) playBtn.textContent = "⏸ إيقاف مؤقت";
+    else if (state.resume) playBtn.textContent = "▶ متابعة";
+    else playBtn.textContent = state.mode === "silent" ? "▶ ابدأ المتابعة" : "▶ ابدأ القراءة";
+    updateStatus();
+  }
+  function updateRateLabel() {
+    let t = state.rate.toFixed(1) + "×";
+    if (state.mode === "silent") t += " (≈ " + Math.round(BASE_WPM * state.rate) + " كلمة/دقيقة)";
+    $("rate-label").textContent = t;
+  }
+
+  // ---------- الأصوات ----------
+  const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+  function voiceScore(v) {
+    let s = 0;
+    // على الموبايل: الأصوات المحلية (بدون إنترنت) أولاً لأنها أسرع وما بتقطعش مع بطء النت
+    if (IS_MOBILE) { if (v.localService) s += 20; }
+    else if (/natural|online/i.test(v.name)) s += 5;
+    if (/^ar-EG/i.test(v.lang)) s += 3;
+    if (/^ar-SA/i.test(v.lang)) s += 2;
+    if (v.localService) s += 1;
+    return s;
+  }
+  function loadVoices() {
+    if (!synth) return;
+    const all = synth.getVoices();
+    const arabic = all.filter(function (v) { return /^ar/i.test(v.lang) || /arab/i.test(v.name); })
+      .sort(function (a, b) { return voiceScore(b) - voiceScore(a); });
+    state.voices = arabic;
+    const saved = store.get("voice", "");
+    const prev = voiceSel.value || saved;
+    voiceSel.innerHTML = "";
+    if (arabic.length === 0) {
+      const o = document.createElement("option");
+      o.value = ""; o.textContent = all.length ? "لا يوجد صوت عربي على الجهاز" : "جارٍ تحميل الأصوات...";
+      voiceSel.appendChild(o);
+    }
+    arabic.forEach(function (v) {
+      const o = document.createElement("option");
+      o.value = v.name;
+      o.textContent = v.name.replace(/^Microsoft\s+/, "") + " (" + v.lang + ")" + (v.localService ? " — على الجهاز" : " — يحتاج إنترنت");
+      voiceSel.appendChild(o);
+    });
+    if (prev && arabic.some(function (v) { return v.name === prev; })) voiceSel.value = prev;
+    checkVoiceAlert(all.length > 0);
+  }
+  function checkVoiceAlert(loaded) {
+    const noArabic = state.mode === "device" && (!synth || (loaded && state.voices.length === 0));
+    $("voice-alert").hidden = !noArabic;
+  }
+  function selectedVoice() {
+    return state.voices.find(function (v) { return v.name === voiceSel.value; }) || null;
+  }
+  if (synth) {
+    loadVoices();
+    if (typeof synth.addEventListener === "function") synth.addEventListener("voiceschanged", loadVoices);
+    else synth.onvoiceschanged = loadVoices;
+    let tries = 0;
+    const poll = setInterval(function () {
+      tries++;
+      if (state.voices.length || tries > 10) { clearInterval(poll); loadVoices(); if (!synth.getVoices().length) checkVoiceAlert(true); }
+      else loadVoices();
+    }, 400);
+  }
+
+  // ---------- عرض الأسفار والأصحاحات ----------
+  function fillBooks() {
+    const books = Object.keys(bibleIndex);
+    bookSel.innerHTML = "";
+    let groups = null;
+    if (books.length >= 66) {
+      groups = [["العهد القديم", 0, 39], ["العهد الجديد", 39, 66], ["الأسفار القانونية الثانية", 66, books.length]];
+    }
+    function opt(b) { const o = document.createElement("option"); o.value = b; o.textContent = b; return o; }
+    if (groups) {
+      groups.forEach(function (g) {
+        if (g[1] >= g[2]) return;
+        const og = document.createElement("optgroup"); og.label = g[0];
+        books.slice(g[1], g[2]).forEach(function (b) { og.appendChild(opt(b)); });
+        bookSel.appendChild(og);
+      });
+    } else {
+      books.forEach(function (b) { bookSel.appendChild(opt(b)); });
+    }
+    return books;
+  }
+  function fillChapters() {
+    const chaps = (bibleIndex[bookSel.value] ? bibleIndex[bookSel.value].c : []).slice();
+    chapSel.innerHTML = "";
+    chaps.forEach(function (c) {
+      const o = document.createElement("option"); o.value = c; o.textContent = "أصحاح " + c; chapSel.appendChild(o);
+    });
+    return chaps;
+  }
+
+  function buildVerse(txt, i) {
+    const words = String(txt).split(/\s+/).filter(Boolean);
+    const el = document.createElement("div");
+    el.className = "verse"; el.id = "v-" + i; el.dataset.i = i;
+    const num = document.createElement("span");
+    num.className = "v-num"; num.textContent = "[" + (i + 1) + "]";
+    el.appendChild(num); el.appendChild(document.createTextNode(" "));
+    const spans = words.map(function (w, k) {
+      const s = document.createElement("span");
+      s.className = "w"; s.textContent = w; s.dataset.k = k;
+      el.appendChild(s);
+      if (k < words.length - 1) el.appendChild(document.createTextNode(" "));
+      return s;
+    });
+    return { el: el, words: words, spans: spans, clean: words.map(cleanForSpeech), chunks: null };
+  }
+
+  // ---------- آخر الأماكن (آخر 4) ----------
+  // كل مكان = (سفر، أصحاح، آخر آية). تتسجل فقط لما تقرأ أو تدوس على آية (مش بمجرد فتح أصحاح).
+  // كل سفر له مكان واحد فقط (آخر أصحاح وآية فيه)، فتكون الأماكن الأربعة من أسفار مختلفة.
+  // الأماكن ثابتة في خاناتها: تحديث المكان بيتم في خانته من غير ما يتحرك، والمكان الجديد بيحل محل الأقدم.
+  const MAX_RECENT = 4, RECENT_KEY = "recent2";
+  function getRecent() {
+    const r = store.get(RECENT_KEY, []);
+    if (!Array.isArray(r)) return [];
+    return r.filter(function (x) { return x && typeof x.v === "number" && chapterExists(x.b, x.c); }).slice(0, MAX_RECENT);
+  }
+  function lastRecent() {
+    return getRecent().reduce(function (m, x) { return (!m || (x.t || 0) > (m.t || 0)) ? x : m; }, null);
+  }
+  function recentLabel(x) { return "آية " + (x.v + 1); }
+  function renderRecent() {
+    const r = getRecent(), box = $("recent"), list = $("recent-list");
+    box.hidden = false;
+    $("store-warn").hidden = store.persistent;
+    const last = lastRecent();
+    const curKey = bookSel.value + "|" + chapSel.value;
+    const sig = r.map(function (x) { return x.b + "|" + x.c; }).join(",");
+    if (list.dataset.sig === sig) {   // نفس الأماكن: حدّث الآية والتمييز فقط
+      Array.prototype.forEach.call(list.children, function (btn, i) {
+        btn.querySelector("small").textContent = recentLabel(r[i]);
+        btn.classList.toggle("current", (r[i].b + "|" + r[i].c) === curKey);
+      });
+      return;
+    }
+    list.dataset.sig = sig; list.innerHTML = "";
+    r.forEach(function (x) {
+      const btn = document.createElement("button");
+      btn.className = "recent-item btn-ghost" + (((x.b + "|" + x.c) === curKey) ? " current" : "");
+      const t = document.createElement("span"); t.textContent = x.b + " - أصحاح " + x.c;
+      const sm = document.createElement("small"); sm.textContent = recentLabel(x);
+      btn.appendChild(t); btn.appendChild(sm);
+      btn.addEventListener("click", function () { openRecent(x); });
+      list.appendChild(btn);
+    });
+  }
+  function pushRecent(b, c, v) {
+    const r = getRecent(), now = Date.now();
+    const i = r.findIndex(function (x) { return x.b === b; });   // مكان واحد لكل سفر
+    if (i >= 0) { r[i].c = c; r[i].v = v; r[i].t = now; }
+    else if (r.length < MAX_RECENT) { r.push({ b: b, c: c, v: v, t: now }); }
+    else {
+      let k = 0;
+      for (let j = 1; j < r.length; j++) { if ((r[j].t || 0) < (r[k].t || 0)) k = j; }
+      r[k] = { b: b, c: c, v: v, t: now };
+    }
+    store.set(RECENT_KEY, r);
+    renderRecent();
+  }
+  function scrollToVerseNow(el) {   // تمرير فوري (بدون حركة) علشان المكان يطلع مظبوط على الموبايل
+    const tb = document.querySelector(".toolbar");
+    const topGap = (tb ? tb.getBoundingClientRect().height : 0) + 24;
+    window.scrollTo({ top: Math.max(0, window.scrollY + el.getBoundingClientRect().top - topGap), behavior: "auto" });
+  }
+  function jumpToVerse(v) {
+    if (!state.verses.length) return;
+    v = Math.max(0, Math.min(state.verses.length - 1, v || 0));
+    setActiveVerse(v, true);
+    state.resume = { v: v, k: 0 };
+    updateButtons();
+    const el = state.verses[v].el;
+    scrollToVerseNow(el);
+    setTimeout(function () { scrollToVerseNow(el); }, 350);   // تصحيح لو الصفحة اتحركت بعد التحميل
+  }
+  function saveRecentFile() {
+    const r = getRecent();
+    if (!r.length) { showStatus("لا توجد أماكن لحفظها بعد — ابدأ القراءة أولاً"); return; }
+    const data = JSON.stringify({ app: "bible-places", places: r.map(function (x) { return { book: x.b, chapter: x.c, verse: x.v + 1, t: x.t || 0 }; }) }, null, 2);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+    a.download = "bible-places.json";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    showStatus("تم حفظ ملف الأماكن (bible-places.json)");
+  }
+  function loadRecentFile(file) {
+    const fr = new FileReader();
+    fr.onload = function () {
+      try {
+        const obj = JSON.parse(fr.result);
+        const arr = Array.isArray(obj) ? obj : obj.places;
+        const seen = {}, out = [];
+        (arr || []).forEach(function (p) {
+          const b = p.book || p.b, c = String(p.chapter || p.c), v = (Number(p.verse || (p.v + 1)) || 1) - 1;
+          if (!chapterExists(b, c) || seen[b]) return;
+          seen[b] = true; out.push({ b: b, c: c, v: Math.max(0, v), t: Number(p.t) || 0 });
+        });
+        if (!out.length) { showStatus("الملف لا يحتوي أماكن صالحة"); return; }
+        store.set(RECENT_KEY, out.slice(0, MAX_RECENT));
+        $("recent-list").dataset.sig = "";
+        renderRecent();
+        const last = lastRecent();
+        if (last) openRecent(last);
+        showStatus("تم تحميل " + Math.min(out.length, MAX_RECENT) + " أماكن من الملف");
+      } catch (e) { showStatus("تعذر قراءة الملف"); }
+    };
+    fr.readAsText(file);
+  }
+  $("recent-save").addEventListener("click", saveRecentFile);
+  $("recent-load").addEventListener("click", function () { $("recent-file").click(); });
+  $("recent-file").addEventListener("change", function () { if (this.files[0]) loadRecentFile(this.files[0]); this.value = ""; });
+
+  function openRecent(x) {
+    stopReading();
+    bookSel.value = x.b; fillChapters(); chapSel.value = x.c;
+    displayChap(true, function () { requestAnimationFrame(function () { jumpToVerse(x.v); }); });
+  }
+
+  function displayChap(noScroll, done) {
+    const b = bookSel.value, c = chapSel.value;
+    if (!hasChapter(b, c)) {   // الجزء لسه ما اتحملش: حمّله ثم اعرض الأصحاح
+      versesDiv.innerHTML = "<p class='empty'>⏳ جاري تحميل السفر...</p>";
+      state.verses = []; state.cur = { v: -1, k: -1 };
+      ensureChapter(b, c, function (ok) {
+        if (ok) displayChap(noScroll, done);
+        else versesDiv.innerHTML = "<p class='empty'>⚠️ تعذر تحميل ملف هذا الأصحاح. تأكد من وجود ملفات bible-*.js بجوار index.html، ومن الاتصال بالإنترنت أول مرة، ثم اختر الأصحاح مرة أخرى.</p>";
+      });
+      return;
+    }
+    const list = bibleData[b][c];
+    versesDiv.innerHTML = "";
+    state.verses = [];
+    state.cur = { v: -1, k: -1 };
+    $("search-box").value = "";
+    if (!list) { versesDiv.innerHTML = "<p class='empty'>لم يتم العثور على بيانات لهذا الأصحاح.</p>"; return; }
+    $("chap-title").textContent = b + " - أصحاح " + c;
+    const frag = document.createDocumentFragment();
+    list.forEach(function (txt, i) { const v = buildVerse(txt, i); state.verses.push(v); frag.appendChild(v.el); });
+    versesDiv.appendChild(frag);
+    setProgress(0);
+    store.set("book", b); store.set("chap", c);
+    renderRecent();
+    if (!noScroll) window.scrollTo({ top: 0, behavior: "smooth" });
+    prefetchNext(b, c);
+    if (done) done();
+  }
+
+  function setProgress(v) {
+    const n = state.verses.length || 1;
+    $("progress-bar").style.width = (v <= 0 ? 0 : Math.min(100, (v / n) * 100)) + "%";
+  }
+
+  // ---------- المؤشر ----------
+  function clearCursor() {
+    document.querySelectorAll(".verse.active").forEach(function (e) { e.classList.remove("active"); });
+    document.querySelectorAll(".w.now, .w.done").forEach(function (e) { e.classList.remove("now", "done"); });
+    state.cur = { v: -1, k: -1 };
+  }
+  function ensureVisible(el) {
+    const r = el.getBoundingClientRect();
+    const tb = document.querySelector(".toolbar");
+    const top = (tb && getComputedStyle(tb).position === "sticky") ? tb.getBoundingClientRect().bottom + 10 : 10;
+    const bottom = window.innerHeight - 40;
+    if (r.top < top || r.bottom > bottom) {
+      const target = window.scrollY + r.top - (top + (bottom - top) * 0.35);
+      window.scrollTo({ top: Math.max(0, target), behavior: "smooth" });
+    }
+  }
+  function setActiveVerse(v, noScroll) {
+    if (state.cur.v === v) return;
+    clearCursor();
+    const verse = state.verses[v];
+    if (!verse) return;
+    verse.el.classList.add("active");
+    state.cur = { v: v, k: -1 };
+    pushRecent(bookSel.value, chapSel.value, v);
+    setProgress(v + 1);
+    if (!noScroll) ensureVisible(verse.el);
+    updateStatus();
+  }
+  function setWord(v, k) {
+    const verse = state.verses[v];
+    if (!verse) return;
+    if (state.cur.v !== v) setActiveVerse(v);
+    k = Math.max(0, Math.min(verse.spans.length - 1, k));
+    const prev = state.cur.k;
+    if (prev === k) return;
+    if (prev >= 0 && verse.spans[prev]) verse.spans[prev].classList.remove("now");
+    if (k > prev) { for (let j = Math.max(0, prev); j < k; j++) verse.spans[j].classList.add("done"); }
+    else { for (let j = k; j < verse.spans.length; j++) verse.spans[j].classList.remove("done"); }
+    const s = verse.spans[k];
+    s.classList.remove("done"); s.classList.add("now");
+    state.cur.k = k;
+    ensureVisible(s);
+  }
+
+  // ---------- تقسيم الآية لأجزاء مناسبة للصوت ----------
+  function chunksOf(v) {
+    const verse = state.verses[v];
+    if (!verse) return [];
+    if (verse.chunks) return verse.chunks;
+    const out = [];
+    let start = 0, len = 0;
+    function push(end) {
+      if (end <= start) return;
+      const offsets = []; let pos = 0;
+      for (let j = start; j < end; j++) { offsets.push(pos); pos += verse.clean[j].length + 1; }
+      out.push({ start: start, end: end, text: verse.clean.slice(start, end).join(" "), offsets: offsets });
+      start = end; len = 0;
+    }
+    for (let k = 0; k < verse.clean.length; k++) {
+      const wl = verse.clean[k].length + 1;
+      if (len + wl > MAX_CHUNK && k > start) push(k);
+      len += wl;
+      if (len > 90 && /[.،,:;؛!?؟]["»]?$/.test(verse.words[k])) push(k + 1);
+    }
+    push(verse.clean.length);
+    verse.chunks = out;
+    return out;
+  }
+  function wordAt(offsets, ci) {
+    let k = 0;
+    for (let j = 0; j < offsets.length; j++) { if (offsets[j] <= ci) k = j; else break; }
+    return k;
+  }
+
+  // ---------- المحركات الثلاثة ----------
+  function playSilent(ch, v) {
+    return new Promise(function (res) {
+      let k = ch.start, timer = null, done = false;
+      const finish = function () { if (done) return; done = true; clearTimeout(timer); res(); };
+      state.cancel = finish;
+      (function step() {
+        if (done) return;
+        if (k >= ch.end) return finish();
+        setWord(v, k);
+        const verse = state.verses[v];
+        const w = verse.clean[k] || "";
+        let f = Math.min(1.7, Math.max(0.7, w.length / 4.5));
+        if (/[.،,:;؛!?؟]["»]?$/.test(verse.words[k] || "")) f += 0.6;
+        k++;
+        timer = setTimeout(step, (60000 / (BASE_WPM * state.rate)) * f);
+      })();
+    });
+  }
+
+  function playDevice(ch, v) {
+    return new Promise(function (res) {
+      if (!synth) { showStatus("هذا المتصفح لا يدعم صوت الجهاز — سيستمر المؤشر بدون صوت.", true); playSilent(ch, v).then(res); return; }
+      const u = new SpeechSynthesisUtterance(ch.text);
+      const voice = selectedVoice();
+      if (voice) { u.voice = voice; u.lang = voice.lang; } else { u.lang = "ar-EG"; }
+      u.rate = state.rate;
+      u.volume = state.volume;
+      let done = false, gotBoundary = false, startT = 0, raf = 0, watchdog = 0;
+      const finish = function () { if (done) return; done = true; cancelAnimationFrame(raf); clearTimeout(watchdog); res(); };
+      state.cancel = finish;
+      u.onboundary = function (e) {
+        if (done || (e.name && e.name !== "word")) return;
+        gotBoundary = true;
+        setWord(v, ch.start + wordAt(ch.offsets, e.charIndex));
+      };
+      u.onstart = function () {
+        if (done) return;
+        clearTimeout(watchdog);
+        startT = performance.now();
+        setWord(v, ch.start);
+        (function est() {
+          if (done) return;
+          if (!gotBoundary) {
+            const chars = ((performance.now() - startT) / 1000) * u.rate / state.secPerChar;
+            setWord(v, ch.start + wordAt(ch.offsets, chars));
+          }
+          raf = requestAnimationFrame(est);
+        })();
+      };
+      u.onend = function () {
+        if (done) return;
+        if (startT && !gotBoundary && ch.text.length > 25) {
+          const d = (performance.now() - startT) / 1000;
+          const spc = d * u.rate / ch.text.length;
+          if (spc > 0.02 && spc < 0.3) state.secPerChar = state.secPerChar * 0.6 + spc * 0.4;
+        }
+        finish();
+      };
+      u.onerror = function (e) {
+        if (done) return;
+        if (e && (e.error === "interrupted" || e.error === "canceled")) return finish();
+        done = true; cancelAnimationFrame(raf); clearTimeout(watchdog);
+        showStatus("تعذر تشغيل صوت الجهاز — سيستمر المؤشر بدون صوت. جرّب «صوت من الإنترنت».", true);
+        playSilent(ch, v).then(res);
+      };
+      state.utt = u; // يمنع المتصفح من حذف الجملة أثناء القراءة
+      setWord(v, ch.start);
+      if (synth.paused) synth.resume();
+      synth.speak(u);
+      watchdog = setTimeout(function () {
+        if (done || startT) return;
+        done = true; cancelAnimationFrame(raf);
+        try { synth.cancel(); } catch (e) {}
+        showStatus("صوت الجهاز لا يستجيب — سيستمر المؤشر بدون صوت. جرّب Microsoft Edge أو «صوت من الإنترنت».", true);
+        playSilent(ch, v).then(res);
+      }, 5000);
+    });
+  }
+
+  function ttsUrl(text) {
+    return "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=ar&q=" + encodeURIComponent(text);
+  }
+  function getAudio(text) {
+    const url = ttsUrl(text);
+    let a = state.audioCache.get(url);
+    if (!a) {
+      a = new Audio();
+      a.preload = "auto";
+      a.volume = state.volume;
+      a.src = url;
+      state.audioCache.set(url, a);
+      if (state.audioCache.size > 16) {
+        const first = state.audioCache.keys().next().value;
+        const old = state.audioCache.get(first);
+        if (old && old.paused) { old.removeAttribute("src"); state.audioCache.delete(first); }
+      }
+    }
+    return a;
+  }
+  function playOnline(ch, v, nextText) {
+    return new Promise(function (res) {
+      const a = getAudio(ch.text);
+      try { a.volume = state.volume; } catch (e) {}
+      if (nextText) getAudio(nextText); // تحميل الجزء التالي مسبقاً
+      let done = false, raf = 0;
+      const finish = function () { if (done) return; done = true; cancelAnimationFrame(raf); a.onended = null; a.onerror = null; res(); };
+      state.cancel = function () { try { a.pause(); } catch (e) {} finish(); };
+      const fail = function () {
+        if (done) return;
+        done = true; cancelAnimationFrame(raf); a.onended = null; a.onerror = null;
+        state.audioCache.delete(ttsUrl(ch.text));
+        showStatus("تعذر تحميل الصوت من الإنترنت — تأكد من الاتصال. سيستمر المؤشر بدون صوت.", true);
+        playSilent(ch, v).then(res);
+      };
+      a.onended = finish;
+      a.onerror = fail;
+      setWord(v, ch.start);
+      try { a.currentTime = 0; } catch (e) {}
+      a.playbackRate = state.rate;
+      const tick = function () {
+        if (done) return;
+        if (a.duration && isFinite(a.duration) && a.duration > 0) {
+          a.playbackRate = state.rate;
+          const p = Math.max(0, a.currentTime - 0.08) / Math.max(0.1, a.duration - 0.15);
+          setWord(v, ch.start + wordAt(ch.offsets, p * ch.text.length));
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      const p = a.play();
+      if (p && typeof p.then === "function") p.then(tick).catch(function (err) { if (!done && err && err.name !== "AbortError") fail(); });
+      else tick();
+    });
+  }
+
+  // ---------- التشغيل ----------
+  function wait(ms) { return new Promise(function (r) { const t = setTimeout(r, ms); state.cancel = function () { clearTimeout(t); r(); }; }); }
+
+  async function playFrom(vi, wi) {
+    haltEngines();
+    const token = ++state.token;
+    state.playing = true; state.resume = null;
+    updateButtons();
+    if (state.mode === "device" && synth && (synth.speaking || synth.pending)) await wait(120);
+    wi = wi || 0;
+    for (let v = vi; v < state.verses.length; v++) {
+      if (token !== state.token) return;
+      setActiveVerse(v);
+      const chunks = chunksOf(v);
+      for (let j = 0; j < chunks.length; j++) {
+        const ch = chunks[j];
+        if (v === vi && ch.end <= wi) continue;
+        if (token !== state.token) return;
+        const startK = (v === vi && wi > ch.start) ? wi : ch.start;
+        const piece = startK > ch.start ? subChunk(v, startK, ch.end) : ch;
+        if (state.mode === "silent") await playSilent(piece, v);
+        else if (state.mode === "online") {
+          const nxt = chunks[j + 1] ? chunks[j + 1].text : (chunksOf(v + 1)[0] || {}).text;
+          await playOnline(piece, v, nxt);
+        } else await playDevice(piece, v);
+      }
+      wi = 0;
+      if (token !== state.token) return;
+      await wait(state.mode === "silent" ? 450 / state.rate : 150);
+    }
+    if (token !== state.token) return;
+    if ($("auto-next").checked && goChapter(1, true, function () { if (state.playing) playFrom(0, 0); })) return;
+    stopReading();
+    showStatus("✔ انتهى الأصحاح");
+  }
+  function subChunk(v, start, end) {
+    const verse = state.verses[v];
+    const offsets = []; let pos = 0;
+    for (let j = start; j < end; j++) { offsets.push(pos); pos += verse.clean[j].length + 1; }
+    return { start: start, end: end, text: verse.clean.slice(start, end).join(" "), offsets: offsets };
+  }
+
+  function haltEngines() {
+    state.token++;
+    const c = state.cancel; state.cancel = null;
+    if (c) c();
+    if (synth) { try { synth.cancel(); } catch (e) {} }
+    state.audioCache.forEach(function (a) { try { a.pause(); } catch (e) {} });
+  }
+  function pauseReading() {
+    const pos = state.cur.v >= 0 ? { v: state.cur.v, k: Math.max(0, state.cur.k) } : null;
+    haltEngines();
+    state.playing = false; state.resume = pos;
+    updateButtons();
+  }
+  function stopReading() {
+    haltEngines();
+    state.playing = false; state.resume = null;
+    clearCursor(); setProgress(0);
+    updateButtons();
+  }
+  function restartIfPlaying() {
+    if (state.playing && state.cur.v >= 0) playFrom(state.cur.v, Math.max(0, state.cur.k));
+  }
+
+  function goChapter(dir, keepPlaying, done) {
+    const books = Object.keys(bibleIndex);
+    const chaps = (bibleIndex[bookSel.value] ? bibleIndex[bookSel.value].c : []).slice();
+    let ci = chaps.indexOf(chapSel.value) + dir;
+    let bi = books.indexOf(bookSel.value);
+    if (ci >= chaps.length) { bi++; ci = 0; if (bi >= books.length) return false; bookSel.value = books[bi]; fillChapters(); }
+    else if (ci < 0) { bi--; if (bi < 0) return false; bookSel.value = books[bi]; const c2 = fillChapters(); ci = c2.length - 1; }
+    chapSel.selectedIndex = ci;
+    if (!keepPlaying) stopReading(); else { haltEngines(); clearCursor(); }
+    displayChap(false, done);
+    return true;
+  }
+
+  // ---------- الأحداث ----------
+  bookSel.addEventListener("change", function () { stopReading(); fillChapters(); chapSel.selectedIndex = 0; displayChap(); });
+  chapSel.addEventListener("change", function () { stopReading(); displayChap(); });
+  ["prev-btn", "prev-top"].forEach(function (id) { $(id).addEventListener("click", function () { goChapter(-1); }); });
+  ["next-btn", "next-top"].forEach(function (id) { $(id).addEventListener("click", function () { goChapter(1); }); });
+
+  playBtn.addEventListener("click", function () {
+    if (state.playing) return pauseReading();
+    if (state.resume) return playFrom(state.resume.v, state.resume.k);
+    const sel = document.querySelector(".verse.active");
+    playFrom(sel ? Number(sel.dataset.i) : 0, 0);
+  });
+  $("stop-btn").addEventListener("click", stopReading);
+
+  versesDiv.addEventListener("click", function (e) {
+    const vEl = e.target.closest(".verse");
+    if (!vEl) return;
+    const wEl = e.target.closest(".w");
+    playFrom(Number(vEl.dataset.i), wEl ? Number(wEl.dataset.k) : 0);
+  });
+
+  modeSel.addEventListener("change", function () {
+    state.mode = modeSel.value; store.set("mode", state.mode);
+    applyMode();
+    restartIfPlaying();
+  });
+  voiceSel.addEventListener("change", function () { store.set("voice", voiceSel.value); if (state.mode === "device") restartIfPlaying(); });
+  rateInput.addEventListener("input", function () {
+    state.rate = parseFloat(rateInput.value) || 1; store.set("rate", state.rate);
+    updateRateLabel();
+    state.audioCache.forEach(function (a) { a.playbackRate = state.rate; });
+  });
+  rateInput.addEventListener("change", function () { if (state.mode === "device") restartIfPlaying(); });
+  $("auto-next").addEventListener("change", function () { store.set("autoNext", $("auto-next").checked); });
+  $("use-online-btn").addEventListener("click", function () { modeSel.value = "online"; modeSel.dispatchEvent(new Event("change")); });
+
+  function setFont(px) { state.font = Math.max(16, Math.min(44, px)); versesDiv.style.fontSize = state.font + "px"; store.set("font", state.font); }
+  $("font-inc").addEventListener("click", function () { setFont(state.font + 2); });
+  $("font-dec").addEventListener("click", function () { setFont(state.font - 2); });
+  (function () {
+    const vi = $("volume"), vl = $("vol-label");
+    function showVol() { vl.textContent = Math.round(state.volume * 100) + "%"; }
+    vi.value = state.volume; showVol();
+    vi.addEventListener("input", function () {
+      state.volume = parseFloat(vi.value); store.set("volume", state.volume); showVol();
+      state.audioCache.forEach(function (a) { try { a.volume = state.volume; } catch (e) {} });
+    });
+  })();
+  $("theme-btn").addEventListener("click", function () { document.body.classList.toggle("dark"); store.set("dark", document.body.classList.contains("dark")); });
+
+  $("search-box").addEventListener("input", function () {
+    const q = normalizeSearch(this.value.trim());
+    let n = 0;
+    state.verses.forEach(function (v) {
+      const show = !q || normalizeSearch(v.words.join(" ")).indexOf(q) !== -1;
+      v.el.hidden = !show; if (show) n++;
+    });
+    if (q) showStatus("نتائج البحث: " + n + " آية"); else updateStatus();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    const tag = (e.target && e.target.tagName) || "";
+    if (/INPUT|SELECT|TEXTAREA|BUTTON/.test(tag)) { if (e.key === "Escape") stopReading(); return; }
+    if (e.code === "Space") { e.preventDefault(); playBtn.click(); }
+    else if (e.key === "Escape") stopReading();
+  });
+
+  function applyMode() {
+    modeSel.value = state.mode;
+    $("voice-field").hidden = state.mode !== "device";
+    checkVoiceAlert(synth ? synth.getVoices().length > 0 : true);
+    updateRateLabel();
+    updateButtons();
+  }
+
+  // ---------- البدء ----------
+  function init() {
+    const books = fillBooks();
+    if (!books.length) { versesDiv.innerHTML = "<p class='empty'>لم يتم العثور على بيانات داخل الملف!</p>"; return; }
+    if (!["device", "online", "silent"].includes(state.mode)) state.mode = "device";
+    rateInput.value = state.rate;
+    $("auto-next").checked = store.get("autoNext", true);
+    if (store.get("dark", false)) document.body.classList.add("dark");
+    setFont(state.font);
+    const savedBook = store.get("book", null);
+    bookSel.value = (savedBook && bibleIndex[savedBook]) ? savedBook : books[0];
+    const chaps = fillChapters();
+    const savedChap = store.get("chap", null);
+    chapSel.value = (savedChap && chaps.indexOf(savedChap) !== -1) ? savedChap : chaps[0];
+    applyMode();
+    displayChap(false, function () {
+      // افتح على آخر مكان توقفت عنده (اضغط «متابعة» لتكمل)
+      const last = lastRecent();
+      if (last && last.b === bookSel.value && last.c === chapSel.value) {
+        requestAnimationFrame(function () { jumpToVerse(last.v); });
+      }
+    });
+  }
+  window.addEventListener("beforeunload", function () { if (synth) synth.cancel(); });
+  init();
+})();
+</script>
+<script>
+(function () {
+  var tb = document.querySelector(".toolbar"), panel = document.getElementById("settings-panel"),
+      btn = document.getElementById("settings-toggle");
+  function get(k, d) { try { var v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
+  function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  var isMobile = window.matchMedia("(max-width: 640px)").matches;
+  var open = get("bible.settingsOpen", isMobile ? "0" : "1") === "1";
+  function apply() {
+    panel.hidden = !open; btn.classList.toggle("on", open);
+    fit();
+  }
+  function fit() { document.documentElement.style.scrollPaddingTop = (tb.getBoundingClientRect().height + 16) + "px"; }
+  btn.addEventListener("click", function () { open = !open; set("bible.settingsOpen", open ? "1" : "0"); apply(); });
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(tb);
+  window.addEventListener("resize", fit);
+  apply();
+})();
+</script>
+</body>
+</html>
